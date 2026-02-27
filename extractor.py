@@ -246,7 +246,16 @@ with st.sidebar:
     # ===== 结束修复 =====
     
     st.header("⚙️ 品牌分析配置")
-    
+        # ===== 调试：看看 API Key 从哪里来 =====
+    import os
+    debug_info = f"""
+🔍 **调试信息**
+- 从 secrets 读取: `{st.secrets.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
+- 从环境变量读取: `{os.environ.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
+- session_state 现有值: `{st.session_state.get("api_key", "空")[:10]}...`
+"""
+    st.caption(debug_info)
+    # ===== 结束调试 =====
     st.session_state.api_key = st.text_input(
         "DeepSeek API Key",
         type="password",
@@ -467,4 +476,5 @@ st.caption("""
 """)
 
 # ===== 结束修改 =====
+
 
