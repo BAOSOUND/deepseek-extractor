@@ -246,6 +246,7 @@ with st.sidebar:
     # ===== 结束修复 =====
     
     st.header("⚙️ 品牌分析配置")
+    
     st.session_state.api_key = st.text_input(
         "DeepSeek API Key",
         type="password",
@@ -466,3 +467,4 @@ st.caption("""
 """)
 
 # ===== 结束修改 =====
+
