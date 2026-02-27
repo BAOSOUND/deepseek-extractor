@@ -214,10 +214,15 @@ if 'query' not in st.session_state:
 if 'brand_analysis' not in st.session_state:
     st.session_state.brand_analysis = None
 if 'api_key' not in st.session_state:
-    st.session_state.api_key = "sk-afcdcc225bf646e5927953a65497c0c5"  # 你的API Key
+    # 尝试从 Streamlit secrets 读取（云端）
+    try:
+        st.session_state.api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+    except:
+        # 如果失败（本地环境），就用空字符串，让用户在侧边栏输入
+        st.session_state.api_key = ""
 # ===== 结束新增 =====
 
-# ===== 新增品牌分析：侧边栏API Key配置 + ICON =====
+# ===== 侧边栏 =====
 with st.sidebar:
     # ===== 修复图片显示 =====
     import os
@@ -241,14 +246,72 @@ with st.sidebar:
     # ===== 结束修复 =====
     
     st.header("⚙️ 品牌分析配置")
-    st.session_state.api_key = st.text_input(
-        "DeepSeek API Key",
-        type="password",
-        value=st.session_state.api_key,
-        help="需要调用DeepSeek API进行品牌分析，输入你充值的API Key"
-    )
+    
+    # ===== 调试信息 =====
+    import os
+    debug_info = f"""
+🔍 **调试信息**
+- 从 secrets 读取: `{st.secrets.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
+- 从环境变量读取: `{os.environ.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
+- session_state 现有值: `{st.session_state.get("api_key", "空")[:10]}...`
+"""
+    st.caption(debug_info)
+    # ===== 结束调试 =====
+    
+    # ===== 统一管理 API Key =====
+    # 如果 session_state 里还没有 api_key，从 secrets 读取
+    if 'api_key' not in st.session_state or not st.session_state.api_key:
+        st.session_state.api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+    
+    # 显示输入框或状态
+    if not st.session_state.api_key:
+        # 没有 Key，显示输入框让用户输入
+        input_key = st.text_input(
+            "DeepSeek API Key",
+            type="password",
+            value="",
+            placeholder="请输入 API Key",
+            help="需要调用DeepSeek API进行品牌分析，输入你充值的API Key"
+        )
+        if input_key:
+            st.session_state.api_key = input_key
+            st.rerun()
+    else:
+        # 有 Key，显示提示信息
+        st.success("✅ API Key 已配置")
+        
+        # 添加一个状态来记录是否正在更换 Key
+        if 'changing_key' not in st.session_state:
+            st.session_state.changing_key = False
+        
+        if st.session_state.changing_key:
+            # 显示输入框让用户输入新 Key
+            new_key = st.text_input(
+                "输入新的 API Key",
+                type="password",
+                value="",
+                placeholder="输入新 Key 后按回车",
+                key="new_key_input"
+            )
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("✅ 确认"):
+                    if new_key:
+                        st.session_state.api_key = new_key
+                        st.session_state.changing_key = False
+                        st.rerun()
+            with col2:
+                if st.button("❌ 取消"):
+                    st.session_state.changing_key = False
+                    st.rerun()
+        else:
+            if st.button("🔄 更换 API Key"):
+                st.session_state.changing_key = True
+                st.rerun()
+    # ===== 结束 API Key 管理 =====
+    
     st.markdown("---")
-# ===== 结束新增 =====
+# ===== 结束侧边栏 =====
 
 if st.button("🚀 提取引用来源", type="primary", use_container_width=True):
     if not link:
@@ -419,7 +482,7 @@ if st.session_state.extracted_data:
         with col1:
             if st.button("🔍 分析品牌", type="primary", use_container_width=True):
                 if not st.session_state.api_key:
-                    st.error("请在左侧边栏配置DeepSeek API Key")
+                    st.error("请配置DeepSeek API Key")
                 else:
                     with st.spinner("AI正在分析品牌能见度..."):
                         # 创建DataFrame用于分析
