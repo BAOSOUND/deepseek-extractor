@@ -214,7 +214,12 @@ if 'query' not in st.session_state:
 if 'brand_analysis' not in st.session_state:
     st.session_state.brand_analysis = None
 if 'api_key' not in st.session_state:
-    st.session_state.api_key = "sk-afcdcc225bf646e5927953a65497c0c5"  # 你的API Key
+    # 尝试从 Streamlit secrets 读取（云端）
+    try:
+        st.session_state.api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+    except:
+        # 如果失败（本地环境），就用空字符串，让用户在侧边栏输入
+        st.session_state.api_key = ""
 # ===== 结束新增 =====
 
 # ===== 新增品牌分析：侧边栏API Key配置 + ICON =====
@@ -459,4 +464,5 @@ st.caption("""
 7. 点击下载按钮后，页面数据会保留，可以继续浏览
 8. 如需提取新的链接，重新输入并点击「提取引用来源」即可
 """)
+
 # ===== 结束修改 =====
