@@ -247,50 +247,59 @@ with st.sidebar:
     
     st.header("⚙️ 品牌分析配置")
     
-    # ===== 调试信息 =====
-    import os
-    debug_info = f"""
-🔍 **调试信息**
-- 从 secrets 读取: `{st.secrets.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
-- 从环境变量读取: `{os.environ.get("DEEPSEEK_API_KEY", "未找到")[:10]}...`
-- session_state 现有值: `{st.session_state.get("api_key", "空")[:10]}...`
-"""
-    st.caption(debug_info)
-    # ===== 结束调试 =====
     
-    # ===== 统一管理 API Key =====
-    # 如果 session_state 里还没有 api_key，从 secrets 读取
+    # ===== 统一管理 API Key（兼容本地和云端） =====
+    # 判断当前环境
+    is_local = False
+    try:
+        # 尝试访问 secrets，如果失败说明是本地环境
+        st.secrets.get("test", "")
+    except:
+        is_local = True
+    
+    # 如果 session_state 里还没有 api_key，从 secrets 读取（仅云端）
     if 'api_key' not in st.session_state or not st.session_state.api_key:
-        st.session_state.api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+        if not is_local:
+            # 云端环境，从 secrets 读取
+            try:
+                st.session_state.api_key = st.secrets.get("DEEPSEEK_API_KEY", "")
+            except:
+                st.session_state.api_key = ""
+        else:
+            # 本地环境，初始化为空
+            st.session_state.api_key = ""
     
     # 显示输入框或状态
     if not st.session_state.api_key:
-        # 没有 Key，显示输入框让用户输入
+        # 没有 Key，显示输入框让用户输入（密码框始终为空）
         input_key = st.text_input(
             "DeepSeek API Key",
             type="password",
-            value="",
-            placeholder="请输入 API Key",
-            help="需要调用DeepSeek API进行品牌分析，输入你充值的API Key"
+            value="",  # 始终为空，不显示任何值
+            placeholder="请输入 API Key（本地运行需手动输入）" if is_local else "请输入 API Key",
+            help="需要调用DeepSeek API进行品牌分析"
         )
         if input_key:
             st.session_state.api_key = input_key
             st.rerun()
     else:
         # 有 Key，显示提示信息
-        st.success("✅ API Key 已配置")
+        if is_local:
+            st.success("✅ API Key 已配置（手动输入）")
+        else:
+            st.success("✅ API Key 已配置（云端自动读取）")
         
         # 添加一个状态来记录是否正在更换 Key
         if 'changing_key' not in st.session_state:
             st.session_state.changing_key = False
         
         if st.session_state.changing_key:
-            # 显示输入框让用户输入新 Key
+            # 显示输入框让用户输入新 Key（密码框始终为空）
             new_key = st.text_input(
                 "输入新的 API Key",
                 type="password",
-                value="",
-                placeholder="输入新 Key 后按回车",
+                value="",  # 始终为空，不显示现有Key
+                placeholder="输入新 Key 后按确认",
                 key="new_key_input"
             )
             col1, col2 = st.columns(2)
@@ -312,6 +321,7 @@ with st.sidebar:
     
     st.markdown("---")
 # ===== 结束侧边栏 =====
+
 
 if st.button("🚀 提取引用来源", type="primary", use_container_width=True):
     if not link:
